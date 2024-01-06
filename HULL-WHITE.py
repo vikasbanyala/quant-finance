@@ -16,25 +16,16 @@ today = Date(2, January, 2023)
 settlement = Date(2, January, 2024)
 Settings.instance().evaluationDate = today
 
-# Define the hypothetical yield curve
+# input yield curve data as on 02/01/2024
 yield_curve_rates = [0.055, 0.048, 0.0433, 0.0409, 0.0401, 0.0393, 0.0394, 0.0395, 0.0395]
 dates = [settlement + Period(i, Years) for i in range(len(yield_curve_rates))]
 yield_curve = YieldTermStructureHandle(ZeroCurve(dates, yield_curve_rates, Actual360()))
+num_dates = [Actual360().yearFraction(today, date) for date in dates]
 
 term_structure = yield_curve
 index = Euribor1Y(term_structure)
 
-
-# Convert dates to numerical values for plotting
-num_dates = [Actual360().yearFraction(today, date) for date in dates]
-
-# Plot both actual and calibrated yield curves
-plt.figure(figsize=(10, 6))
-plt.plot(num_dates, yield_curve_rates, marker='o', linestyle='-', color='b', label='Actual Yield Curve')
-plt.title('Actual and Calibrated Yield Curves')
-plt.xlabel('Time to Maturity (Years)')
-plt.ylabel('Yield')
-
+#add hypothetical swaption data
 CalibrationData = namedtuple("CalibrationData", "start, length, volatility")
 data = [
     CalibrationData(1, 5, 0.1148),
@@ -43,7 +34,7 @@ data = [
     CalibrationData(4, 2, 0.1021),
     CalibrationData(5, 1, 0.1000)
 ]
-
+#creating swaption helpers
 def create_swaption_helpers(data, index, term_structure, engine):
     swaptions = []
     fixed_leg_tenor = Period(1, Years)
@@ -64,7 +55,8 @@ def create_swaption_helpers(data, index, term_structure, engine):
         helper.setPricingEngine(engine)
         swaptions.append(helper)
     return swaptions
-
+    
+#caliberation report
 def calibration_report(swaptions, data):
     columns = ["Model Price", "Market Price", "Implied Vol", "Market Vol", "Rel Error Price", "Rel Error Vols"]
     report_data = []
@@ -96,17 +88,17 @@ end_criteria = EndCriteria(10000, 100, 1e-6, 1e-8, 1e-8)
 # Calibrate the Hull-White model
 model.calibrate(swaptions, optimization_method, end_criteria)
 
-# Get the calibrated zero rates
-calibrated_rates = [term_structure.zeroRate(date, Actual360(), Continuous).rate() for date in dates]
 
-# Plot the calibrated yield curve on the same graph
+# Plot both actual and calibrated yield curves
+plt.figure(figsize=(10, 6))
+plt.plot(num_dates, yield_curve_rates, marker='o', linestyle='-', color='b', label='Actual Yield Curve')
+plt.title('Actual and Calibrated Yield Curves')
+plt.xlabel('Time to Maturity (Years)')
+plt.ylabel('Yield')
 plt.plot(num_dates, calibrated_rates, marker='o', linestyle='--', color='r', label='Calibrated Yield Curve')
 plt.legend()
 plt.show()
 
-# Retrieve the fixed rate from the first swaption
-underlying_swap = swaptions[2].underlyingSwap()
-fixed_rate = underlying_swap.fixedRate()
 
 
 # Print the calibrated parameters

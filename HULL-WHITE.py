@@ -105,8 +105,6 @@ plt.show()
 a, sigma = model.params()
 print(f"Hull-White Model Parameters: a = {a:.6f}, sigma = {sigma:.6f}")
 
-# Print the calibration report
-calibration_report(swaptions, data)
 
 
 # In[ ]:

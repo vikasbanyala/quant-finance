@@ -1,0 +1,111 @@
+import QuantLib as ql
+from scipy.interpolate import interp1d
+import numpy as np
+from scipy.optimize import least_squares
+from scipy.optimize import least_squares
+
+
+calendar = ql.WeekendsOnly()
+trade_date = ql.Date(15,4,2025)
+
+def swap_price(nominal, fixed_rate, trade_date, maturity_date, t_input, df_input):
+    schedule = ql.MakeSchedule(trade_date, maturity_date, ql.Period('3M'), calendar = calendar, convention = ql.Following)
+    dates = []
+    year_frac = []
+    for i in schedule:
+        dates.append(i)
+        year_frac.append((i-trade_date)/365)
+    interp = interp1d(t_input, df_input, kind = 'linear')
+    
+    interp_df = []
+    for i in year_frac:
+        interp_df.append(interp(i))
+        
+    forward = []
+    forward.append(0)
+    for i in range(1,len(dates)):
+        forward.append(1/(year_frac[i]-year_frac[i-1])*(interp_df[i-1]/interp_df[i]-1))
+        
+    fixed = []
+    f1oat = []
+    fixed.append(0)
+    f1oat.append(0)
+    for i in range(1,len(dates)):
+        fixed.append(nominal*fixed_rate*(year_frac[i]-year_frac[i-1]))
+        f1oat.append(nominal*forward[i]*(year_frac[i]-year_frac[i-1]))
+        
+    V_swap = np.sum(np.multiply(fixed, interp_df)) - np.sum(np.multiply(f1oat, interp_df))
+    
+    return V_swap
+
+swap_curve = []
+swap_curve.append(1)
+swap_curve.append(1/(1+0.07*(ql.Date(15,7,2025)-trade_date)/365))
+#FRA DATA
+swap_curve.append(1/(1+0.071*(ql.Date(15,10,2025)-ql.Date(15,7,2025))/365)*swap_curve[1])
+swap_curve.append(1/(1+0.073*(ql.Date(15,1,2026)-ql.Date(15,10,2025))/365)*swap_curve[2])
+swap_curve.append(1/(1+0.075*(ql.Date(15,4,2026)-ql.Date(15,1,2026))/365)*swap_curve[3])
+
+#Swap datas
+maturities = [3, 5, 8, 10, 15, 20, 25]  # in years
+maturity_dates = [
+    ql.Date(17, 4, 2028),
+    ql.Date(15, 4, 2030),
+    ql.Date(15, 4, 2033),
+    ql.Date(16, 4, 2035),
+    ql.Date(16, 4, 2040),
+    ql.Date(17, 4, 2045),
+    ql.Date(15, 4, 2050)
+]
+fixed_rates = [0.0802, 0.0835, 0.0914, 0.0959, 0.0991, 0.0998, 0.0984]
+
+
+swap_curve = []
+t_input = []
+
+
+swap_curve.append(1.0)
+t_input.append(0.0)
+
+
+dates = [
+    ql.Date(15, 7, 2025),
+    ql.Date(15, 10, 2025),
+    ql.Date(15, 1, 2026),
+    ql.Date(15, 4, 2026)
+]
+rates = [0.07, 0.071, 0.073, 0.075]
+
+for i, date in enumerate(dates):
+    df = 1 / (1 + rates[i] * (date - (dates[i-1] if i > 0 else trade_date)) / 365) * (swap_curve[-1] if i > 0 else 1)
+    swap_curve.append(df)
+    t_input.append((date - trade_date) / 365)
+
+
+nominal = 1_000_000
+for maturity, fixed_rate, maturity_date in zip(maturities, fixed_rates, maturity_dates):
+    
+    t_maturity = (maturity_date - trade_date) / 365
+    if t_maturity not in t_input:  
+        def cost(x):
+            current_t_input = t_input + [t_maturity]
+            current_df_input = np.append(swap_curve, x[0])
+            return swap_price(
+                nominal,
+                fixed_rate,
+                trade_date,
+                maturity_date,
+                current_t_input,
+                current_df_input
+            )
+        
+      
+        result = least_squares(cost, 0.7, bounds=(0, 1))  
+        swap_curve.append(result.x[0])
+        t_input.append(t_maturity)
+        
+print(swap_curve)
+
+print(t_input)
+
+        

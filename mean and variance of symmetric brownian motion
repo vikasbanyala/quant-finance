@@ -1,0 +1,46 @@
+#calculating mean and variation of brownian motion - symmetric random walk through monte carlo simulations
+import numpy as np
+import matplotlib.pyplot as plt
+
+def mean_var(paths, steps):
+    # Simulate random walk
+    w = np.random.choice([-1, 1], [paths, steps], p=[0.5, 0.5])
+    
+    # Store mean and variance for each path
+    x = np.zeros([paths, 2])
+    for i in range(paths):
+        x[i, 0] = np.mean(w[i, :])
+        x[i, 1] = np.var(w[i, :])
+
+    # Create x-axis for number of paths
+    path_ids = np.arange(1, paths + 1)
+
+    # Plot mean
+    plt.figure(figsize=(12, 5))
+    
+    plt.subplot(1, 2, 1)
+    plt.plot(path_ids, x[:, 0], label='Mean')
+    plt.axhline(0, color='gray', linestyle='--', label='Theoretical Mean = 0')
+    plt.xlabel('Path Index')
+    plt.ylabel('Mean')
+    plt.title('Mean per Path')
+    plt.grid(True)
+    plt.legend()
+
+    # Plot variance
+    plt.subplot(1, 2, 2)
+    plt.plot(path_ids, x[:, 1], color='orange', label='Variance')
+    plt.axhline(1, color='gray', linestyle='--', label='Theoretical Var = 1')
+    plt.xlabel('Path Index')
+    plt.ylabel('Variance')
+    plt.title('Variance per Path')
+    plt.grid(True)
+    plt.legend()
+
+    plt.tight_layout()
+    plt.show()
+
+    return np.max(x[:, 0]), np.min(x[:, 0]), np.max(x[:, 1]), np.min(x[:, 1])
+
+# Run the simulation
+mean_var(100, 5000)

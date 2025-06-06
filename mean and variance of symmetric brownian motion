@@ -23,7 +23,7 @@ def mean_var(paths, steps):
     plt.axhline(0, color='gray', linestyle='--', label='Theoretical Mean = 0')
     plt.xlabel('Path Index')
     plt.ylabel('Mean')
-    plt.title('Mean per Path')
+    plt.title('Mean')
     plt.grid(True)
     plt.legend()
 
@@ -33,7 +33,7 @@ def mean_var(paths, steps):
     plt.axhline(1, color='gray', linestyle='--', label='Theoretical Var = 1')
     plt.xlabel('Path Index')
     plt.ylabel('Variance')
-    plt.title('Variance per Path')
+    plt.title('Variance')
     plt.grid(True)
     plt.legend()
 

@@ -1,0 +1,33 @@
+#Imagine flipping a coin and keeping score: +1 for heads, -1 for tails. After 25 tosses, you’ve got a score—say, +3. 
+#Now, even if you flip the coin 75 more times, on average, you’ll still expect to end up at +3. Why? Because the game is fair—no trend, no memory, just pure randomness. 
+#This little project simulates exactly that: starting from a known value at time 25, it runs thousands of random walks to time 100 and shows that the average ending point still centers around where you started
+
+import numpy as np
+
+def martingale(paths=100000):
+    t_known = 25
+    t_total = 100
+    steps = t_total - t_known  # Remaining steps = 75
+
+    # Step 1: Known past until t = 25
+    f_t = np.random.choice([-1, 1], t_known)
+    f_t_c = np.cumsum(f_t)
+    x_25 = f_t_c[-1]
+    print(f"theoretical mean: {x_25}")
+    print(f"theoretical variance: {steps}")
+
+    # Step 2: Simulate remaining random walk paths from t=25 to t=100
+    w = np.random.choice([-1, 1], size=(paths, steps), p=[0.5, 0.5])
+    increments = np.cumsum(w, axis=1)
+    x_100_all = x_25 + increments[:, -1]  # X_100 = X_25 + (X_100 - X_25)
+
+    # Step 3: Calculate expectation and variance of X_100 given X_25
+    mean = np.mean(x_100_all)
+    var = np.var(x_100_all)
+    
+    print(f"montecarlo simulated mean : {mean}")
+    print(f"montecarlo simulated variance: {var}")
+
+    return 
+
+martingale()

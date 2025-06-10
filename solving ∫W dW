@@ -1,0 +1,50 @@
+#This Python script simulates the stochastic integral ∫W dW using Brownian motion paths. It compares Monte Carlo simulation results against the 
+#known analytical solution (0.5W_T² - 0.5T).The code generates multiple Brownian paths, computes the integral numerically, 
+#and verifies the theoretical mean and variance of the solution. Key parameters like time horizon (T=3), steps (30,000), and paths (10,000) can be adjusted to test convergence properties.
+
+
+import numpy as np
+
+#setting up parameters 
+T = 3
+steps = 30000
+paths = 10000
+dt = T / steps
+w = np.zeros([paths, steps+1])
+integral = np.zeros(paths)
+
+
+#generating brownian increments
+
+dw = np.random.normal(0, np.sqrt(dt),[paths, steps])
+
+      
+w[:,1:] = np.cumsum(dw, axis = 1)
+
+#solving integral through simulations
+
+for i in range(steps):
+    integral += w[:,i] * dw[:,i]
+    
+montecarlo_mean = np.mean(integral)
+montecarlo_var = np.var(integral)
+
+#analytical results
+
+analytical_mean = np.mean(1/2 * w[:,-1]**2 - 1/2 * T)
+analytical_var = (1/2 * T**2)
+
+
+k = np.linspace(0,100000,1)
+
+# Analytical solution
+analytical = 0.5 * w[:, -1]**2 - 0.5 * T
+    
+
+print(f'montecarlo mean is {montecarlo_mean}')
+print(f'analytical mean is {analytical_mean}')
+print(f'montecarlo var is {montecarlo_var}')
+print(f'analytical var is {analytical_var}')
+
+
+

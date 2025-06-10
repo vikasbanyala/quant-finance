@@ -35,8 +35,6 @@ analytical_mean = np.mean(1/2 * w[:,-1]**2 - 1/2 * T)
 analytical_var = (1/2 * T**2)
 
 
-k = np.linspace(0,100000,1)
-
 # Analytical solution
 analytical = 0.5 * w[:, -1]**2 - 0.5 * T
     

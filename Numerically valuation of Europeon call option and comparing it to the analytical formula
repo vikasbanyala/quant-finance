@@ -5,72 +5,66 @@ Compares with the analytical Black-Scholes formula and visualizes sample paths.
 
 """
 
-import numpy as np
+iimport numpy as np
 import matplotlib.pyplot as plt
-from scipy.stats import norm
 
 
 
-# Analytical Black-Scholes call price
-def black_scholes_call(S0, K, T, r, sigma):
-   
+#analytical price
+
+def black_scholes_analytical_call(s0,K,r,sigma,T):
+    d1 = (np.log(s0/K) + (r + 0.5 * sigma ** 2 * T)) / (sigma * np.sqrt(T))
+    d2 = d1 - (sigma * np.sqrt(T))
+    call_price_analytical = s0* norm.cdf(d1) - np.exp(-r*T) * K * norm.cdf(d2)
     
-    d1 = (np.log(S0 / K) + (r + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
-    d2 = d1 - sigma * np.sqrt(T)
-    call_price = S0 * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
-    return call_price
+    return call_price_analytical
 
-# Monte Carlo simulation for call option price
-def monte_carlo_call(S0, K, T, r, sigma, paths, steps):
+#numerical solution
+def montecarlosimu(paths, steps, sigma, r, s0, K, T):
+
     
-    dt = T / steps
-    # Generate Brownian increments
-    dW = np.random.normal(0, np.sqrt(dt), size=(paths, steps))
-    # Simulate GBM paths under risk-neutral measure
-    S = np.zeros((paths, steps + 1))
-    S[:, 0] = S0
+    dt = T/steps
+    dw = np.random.normal(0,np.sqrt(dt), [paths, steps])
+    w = np.cumsum(dw, axis = 1)
+
+    s = np.zeros([paths, steps+1])
+    s[:,0]=s0
+
     for i in range(steps):
-        S[:, i + 1] = S[:, i] * (1 + r * dt + sigma * dW[:, i])
-    # Compute call payoffs at T
-    payoffs = np.maximum(S[:, -1] - K, 0)
-    # Discounted expected payoff
-    call_price = np.exp(-r * T) * np.mean(payoffs)
-    # Standard error and 95% confidence interval
-    std_err = np.std(payoffs) / np.sqrt(paths)
-    ci_lower = call_price - 1.96 * std_err * np.exp(-r * T)
-    ci_upper = call_price + 1.96 * std_err * np.exp(-r * T)
-    return call_price, std_err, ci_lower, ci_upper, S
+        s[:,i+1] = s[:,i] * (1 + (r * dt) + sigma * dw[:,i])
 
-# Parameters
-S0 = 100      # Initial stock price
-K = 102       # Strike price
-T = 1.0       # Time to expiration (years)
-r = 0.05      # Risk-free rate
-sigma = 0.08   # Volatility
-paths = 10000 # Number of paths
-steps = 1000  # Number of time steps
+    payoff = np.maximum(s[:,-1]-K, 0)
+    call_price_numerical = np.exp(-r*T) * np.mean(payoff)
+    
+    return call_price_numerical, s
 
-
-# Compute prices
-analytical_price = black_scholes_call(S0, K, T, r, sigma)
-mc_price, mc_std_err, mc_ci_lower, mc_ci_upper, S_paths = monte_carlo_call(S0, K, T, r, sigma, paths, steps)
-
-# Print results
-print(f"Analytical Black-Scholes Call Price: {analytical_price:.4f}")
-print(f"Monte Carlo Call Price: {mc_price:.4f}")
-print(f"Monte Carlo 95% Confidence Interval: [{mc_ci_lower:.4f}, {mc_ci_upper:.4f}]")
-print(f"Monte Carlo Standard Error: {mc_std_err:.4f}")
-
-# Plot sample asset price paths
-times = np.linspace(0, T, steps + 1)
-plt.figure(figsize=(10, 6))
-for i in range(5):
-    plt.plot(times, S_paths[i, :], label=f"Path {i+1}")
-plt.axhline(y=K, color='r', linestyle='--', label=f"Strike Price = {K}")
-plt.xlabel("Time (years)")
-plt.ylabel("Asset Price")
-plt.title("Sample GBM Paths for Black-Scholes Call Option")
-plt.legend()
-plt.grid(True)
-plt.savefig("gbm_paths_call_option.png")
-plt.show()
+def mainfunction():
+    #parameters
+    s0 = 100
+    K = 102
+    T = 1
+    r = 0.05
+    sigma = 0.08
+    paths = 25000
+    steps = 1000
+    
+    call_price_analytical = black_scholes_analytical_call(s0,K,r,sigma,T)
+    call_price_numerical, s_paths = montecarlosimu(paths, steps, sigma, r, s0, K, T)
+    print(f'Analytical price of europen call option is {call_price_analytical}')
+    print(f'Numerical price of europen call option is {call_price_numerical}')
+    
+    time = np.linspace(0,T,steps+1)
+    
+    plt.figure(figsize=(12,6))
+    for i in range(100):
+        plt.plot(time,s_paths[i,:])
+    plt.axhline(y = K, color = 'red', linestyle='--', label=f'strike price {K}')
+    plt.xlabel('time steps')
+    plt.ylabel('stock paths')
+    plt.title("sample stock paths")
+    plt.show()
+    
+    
+mainfunction()
+    
+   

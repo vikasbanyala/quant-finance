@@ -5,7 +5,7 @@ Compares with the analytical Black-Scholes formula and visualizes sample paths.
 
 """
 
-iimport numpy as np
+import numpy as np
 import matplotlib.pyplot as plt
 
 

@@ -1,0 +1,103 @@
+import numpy as np
+from scipy.stats import norm
+
+#parameters
+s0 = 100
+K = 106
+r = 0.05
+sigma =0.12
+T = 1
+
+# Black-Scholes call option price
+def black_scholes_call(S, K, T, r, sigma):
+    d1 = (np.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
+    d2 = d1 - sigma * np.sqrt(T)
+    call_price = S * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
+    return call_price
+
+def black_delta(s0,K,r,T,sigma):
+    d1 = (np.log(s0 / K) + (r + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
+    delta = norm.cdf(d1)
+    return delta
+
+def black_gamma(s0,K,r,T,sigma):
+    d1 = ( np.log(s0/K) + (r + sigma**2 *0.5) * T ) / (sigma * np.sqrt(T))
+    N_d1 = norm.pdf(d1)
+    gamma = N_d1 / (s0 * sigma * np.sqrt(T))
+    return gamma
+
+def black_vega(s0,K,r,T,sigma):
+    d1 = ( np.log(s0/K) + (r + sigma**2 *0.5) * T ) / (sigma * np.sqrt(T))
+    vega = norm.pdf(d1) * s0 * np.sqrt(T)
+    return vega
+
+def black_Theta(s0,K,r,T,sigma):
+    d1 = ( np.log(s0/K) + (r + sigma**2 *0.5) * T ) / (sigma * np.sqrt(T))
+    d2 = d1 - (sigma * np.sqrt(T))
+    term1 = - (s0 * norm.pdf(d1) * sigma) / (2* np.sqrt(T))
+    term2 = - r * K * np.exp(-r * T) * norm.cdf(d2)
+    theta = term1 + term2
+    return theta
+
+
+def black_rho(s0,K,r,T,sigma):
+    d1 = ( np.log(s0/K) + (r + sigma**2 *0.5) * T ) / (sigma * np.sqrt(T))
+    d2 = d1 - (sigma * np.sqrt(T))
+    
+    rho = K * T * np.exp(-r * T) * norm.cdf(d2)
+    
+    return rho
+
+#black scholes delta
+
+s = np.linspace(90,120,100)
+s1 = np.linspace(50,150,200)
+t = np.linspace(0,1,100)
+call_price_delta = black_delta(s, K, T, r, sigma)
+call_price_gamma = black_gamma(s, K, T, r, sigma)
+call_price_vega = black_vega(s, K, T, r, sigma)
+call_price_theta = black_Theta(s0,K,r,(T-t),sigma)
+call_price_rho = black_rho(s1,K,r,T,sigma)
+
+plt.figure(figsize=(10,6))
+plt.plot(s,call_price_delta)
+plt.xlabel('stock price')
+plt.ylabel('delta')
+plt.title('delta of europeon call option')
+plt.grid()
+plt.show()
+
+plt.figure(figsize=(10,6))
+plt.plot(s,call_price_gamma)
+plt.xlabel('stock price')
+plt.ylabel('gamma')
+plt.title('gamma of europeon call option')
+plt.grid()
+plt.show()
+
+plt.figure(figsize=(10,6))
+plt.plot(s,call_price_vega)
+plt.xlabel('stock price')
+plt.ylabel('vega')
+plt.title('vega of europeon call option')
+plt.grid()
+plt.show()
+
+plt.figure(figsize=(10,6))
+plt.plot(t,call_price_theta)
+plt.xlabel('time')
+plt.ylabel('theta')
+plt.title('theta of europeon call option')
+plt.grid()
+plt.show()
+
+
+plt.figure(figsize=(10,6))
+plt.plot(s1,call_price_rho)
+plt.xlabel('stock price')
+plt.ylabel('rho')
+plt.title('rho of europeon call option')
+plt.grid()
+plt.show()
+
+

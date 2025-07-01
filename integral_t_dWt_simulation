@@ -1,0 +1,94 @@
+'''
+
+Stochastic Integral Simulation: ∫₀ᵀ t dW(t)
+
+This Python script performs a Monte Carlo simulation to estimate the stochastic integral:
+
+\[
+\int_0^T t \, dW(t)
+\]
+
+where \( W(t) \) is standard Brownian motion and \( T = 3 \).
+
+The analytical solution for this integral is:
+- **Mean** = 0
+- **Variance** = \( \frac{T^3}{3} \)
+
+The simulation compares the Monte Carlo estimates of the mean and variance with the known analytical results for varying numbers of simulated paths (from 20 to 10,000). 
+The output is presented in clean, tabulated form using the `tabulate` library.
+
+'''
+
+
+
+
+import numpy as np
+from tabulate import tabulate
+
+# Parameters
+T = 3
+steps = 10000
+dt = T / steps
+paths = np.linspace(20, 10000, 10, dtype=int)
+t = np.linspace(0, T, steps)
+
+# Analytical values
+analytical_mean = 0
+analytical_var = T**3 / 3
+
+print(f'Analytical mean: {analytical_mean:.3f}')
+print(f'Analytical variance: {analytical_var:.3f}')
+
+# Monte Carlo simulations
+table_data_mean = []
+table_data_var = []
+
+for n_paths in paths:
+    # Generate Brownian motion increments
+    dw = np.random.normal(0, 1, [n_paths, steps]) * np.sqrt(dt)
+    t_dwt = np.zeros([n_paths, steps])
+    
+    # Compute integrand t * dW(t)
+    for k in range(steps):
+        t_dwt[:, k] = t[k] * dw[:, k]
+    
+    # Compute stochastic integral for each path
+    int_t_dwt = np.sum(t_dwt, axis=1)
+    
+    # Compute Monte Carlo mean and variance
+    mc_mean = np.mean(int_t_dwt)
+    mc_var = np.var(int_t_dwt)
+    
+    # Compute differences
+    diff_mean = analytical_mean - mc_mean
+    diff_var = analytical_var - mc_var
+    
+    # Store table data
+    table_data_mean.append((n_paths, analytical_mean, mc_mean, diff_mean))
+    table_data_var.append((n_paths, analytical_var, mc_var, diff_var))
+
+# Prepare tables for tabulate
+mean_table = [[row[0], f"{row[1]:.3f}", f"{row[2]:.3f}", f"{row[3]:.3f}"] for row in table_data_mean]
+var_table = [[row[0], f"{row[1]:.3f}", f"{row[2]:.3f}", f"{row[3]:.3f}"] for row in table_data_var]
+
+# Print tables with tabulate
+print("\nMonte Carlo Simulation Results for ∫₀ᵀ t dW(t) with T=3\n")
+print("Mean Comparison")
+print(tabulate(
+    mean_table,
+    headers=["No. of Paths", "Analytical Mean", "Monte Carlo Mean", "Mean Difference"],
+    tablefmt="fancy_grid",
+    stralign="left",
+    numalign="center",
+    floatfmt=".3f"
+))
+
+print("\nVariance Comparison")
+print(tabulate(
+    var_table,
+    headers=["No. of Paths", "Analytical Variance", "Monte Carlo Variance", "Variance Difference"],
+    tablefmt="fancy_grid",
+    stralign="left",
+    numalign="center",
+    floatfmt=".3f"
+))

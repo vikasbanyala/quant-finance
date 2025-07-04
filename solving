@@ -1,0 +1,139 @@
+'''
+Term structure models, like the Hull-White model, are designed to perfectly replicate the market’s initial term structure, 
+ensuring zero-coupon bond (ZCB) prices match observed market prices. This precision is remarkable given the model’s incorporation of 
+random interest rate fluctuations, raising the question: how does it achieve such accuracy? This program explores this by pricing ZCBs 
+using the Hull-White model and analyzing how changes in the volatility parameter sigma and mean reversion speed a affect the stochastic 
+and deterministic components of the bond price. By varying these parameters, we observe how the model’s deterministic term adjusts to 
+counteract randomness, consistently yielding market-aligned ZCB prices. This exercise illuminates the balance between randomness and 
+calibration in interest rate modeling.
+
+'''
+
+
+
+
+import numpy as np
+from scipy.integrate import quad
+from scipy.interpolate import interp1d
+
+
+#market data
+maturities = np.array([0.0, 0.2493150684931507, 0.5013698630136987, 0.7534246575342466,
+                       1.0, 3.0082191780821916, 5.002739726027397, 8.005479452054795,
+                       10.008219178082191, 15.013698630136986, 20.019178082191782,
+                       25.016438356164382])
+discount_factors = np.array([1.0, 0.9828472951503892, 0.9655676031402194, 0.9481221554793985,
+                             0.9309067565567731, 0.7864070426924387, 0.6586262149130966,
+                             0.4731428899670019, 0.36771603681856185, 0.20626168272503248,
+                             0.1201872976177416, 0.0830308835811612])
+
+#parameters
+a = 0.05
+ai=np.linspace(0.01,0.1,10)
+sigma = np.linspace(0.01, 0.1, 10)
+x0 = 0
+t = 0
+T = 5.002739726027397
+dt = 0.0001
+
+
+deterministic_ter = []
+stochastic_ter = []
+hw_prices = []
+market_prices = []
+table_data = []
+difference = []
+
+
+deterministic_ter_a = []
+stochastic_ter_a = []
+hw_prices_a = []
+market_prices_a = []
+table_data_a = []
+difference_a = []
+
+#interpolation
+
+P0T = interp1d(maturities, discount_factors, kind = 'cubic', fill_value = 'extrapolate')
+
+# forward rate
+
+def forward(s):
+    expr = - (np.log(P0T(s+dt)) - np.log(P0T(s-dt))) / (2 *dt)
+    return expr
+
+def forward_integral(t,T):
+    expr1, error = quad(forward, t,T, limit = 10000)
+    return expr1
+
+
+#hull white B
+
+def b(t,T,a):
+    expr2 = ( 1 - np.exp(-a*(T-t)) ) / a
+    return expr2
+
+#hull white v function
+
+def v(s,U,a,sigma):
+    term1 = ( 1 - np.exp(-a*(U-s)) )**2 
+    term2 = sigma**2 / a**2
+    return term1 * term2
+
+
+#stochastic term
+
+def stochastic(t,T,a,sigma):
+    term3 = -b(t,T,a)*x0
+    term4,e = quad(v,t,T,args=(T,a,sigma))
+    return np.exp(term3+ (0.5* term4))
+
+
+#deterministic function
+def deterministic(t,T,U,a,sigma):
+    v_0_t_t, e = quad(v,t,t,args=(t,a,sigma),limit = 1000)
+    v_0_T_T, e =quad(v,t,T,args =(T,a,sigma), limit = 1000)
+    return np.exp(0.5*(v_0_t_t - v_0_T_T))
+
+#ZCB prices 
+
+def zcb_price(t,T,a,sigma):
+    price = deterministic(t,T,T,a,sigma) * stochastic(t,T,a,sigma) * np.exp(-forward_integral(t,T))
+    return price
+
+for i in range(len(sigma)):
+    hw_prices.append(zcb_price(t,T,a,sigma[i]))
+    deterministic_ter.append(deterministic(t,T,T,a,sigma[i]))
+    stochastic_ter.append(stochastic(t,T,a,sigma[i]))
+    market_prices.append(P0T(T))
+    difference.append(market_prices[i] - hw_prices[i])
+    table_data.append((sigma[i],deterministic_ter[i],stochastic_ter[i],hw_prices[i],market_prices[i],difference[i]  ))
+    
+for i in range(len(ai)):
+    sigma_a = 0.08
+    hw_prices_a.append(zcb_price(t,T,ai[i],sigma_a))
+    deterministic_ter_a.append(deterministic(t,T,T,ai[i],sigma_a))
+    stochastic_ter_a.append(stochastic(t,T,ai[i],sigma_a))
+    market_prices_a.append(P0T(T))
+    difference_a.append(market_prices_a[i] - hw_prices_a[i] )
+    table_data_a.append((ai[i],deterministic_ter_a[i],stochastic_ter_a[i],hw_prices_a[i], market_prices_a[i],difference_a[i]))
+    
+    
+    
+    
+    
+table = "| Sigma | Deterministic Term | Stochastic Term | HW Price | Market Price | difference | \n"
+table += "|-------|-------------------|------------------|----------|--------------|------------|\n"
+for row in table_data:
+    table += f"| {row[0]:.4f} | {row[1]:.14f} | {row[2]:.14f} | {row[3]:.8f} | {row[4]:.8f} | {row[5]:.8f}|\n"
+print('comparison Hull white analytical zcb prices with market price as we change sigma and how deterministic term and stochastic term changes')
+print(table)
+
+table_a =  "|  a    | Deterministic Term| Stochastic Term  | HW Price | Market Price | difference | \n"
+table_a += "|-------|-------------------|------------------|----------|--------------|------------|\n"
+
+
+for row in table_data_a:
+    table_a += f"| {row[0]:.3f} | {row[1]:.15f} | {row[2]:.14f} | {row[3]:.8f} | {row[4]:.8f} | {row[5]:.8f}|\n"
+print('comparison Hull white analytical zcb prices with market price as we change a and how deterministic term and stochastic term changes')
+print(table_a)

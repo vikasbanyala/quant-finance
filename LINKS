@@ -1,2 +1,225 @@
 # https://www.dropbox.com/scl/fi/rzqaawjqwt4qe3rmnnxiw/loan_data_2007_2014.csv?rlkey=a5y6ojznit1ozu8fwt0m7w11w&e=1&dl=0
 # https://www.dropbox.com/scl/fi/y8s2by8eysd9ys25e09ly/loan_data_2007_2014_preprocessed.csv?rlkey=382spcm4emmou4n60drtjsks4&e=1&dl=0
+DATA preparation
+
+emp_length
+
+We are standardizing the emp_length field by removing text and special characters, and replacing values like "< 1 year"and "n/a" with 0, so that employment length is stored as a clean numeric value (in years) ready for analysis.
+
+earliest_cr_line_date
+
+We convert the credit line start dates from text to proper datetime values, check their data type, and calculate how many months have passed since each credit line was opened (using December 2017 as the reference date). We then create a new column to store these month differences, review the summary statistics, and identify incorrect negative values caused by misinterpreted old dates (e.g., pre-1970 appearing as 2069). For those rows, we replace the negative values with the maximum observed month difference and finally check the updated minimum value.
+
+Term
+
+
+
+We remove the text " months" from the term column, convert the remaining values to numeric form, and store them in a new column term_int, so the loan term is now represented as a number of months instead of text.
+
+issue_d_date
+
+We convert the loan issue dates from text to datetime format, then calculate how many months have passed since each loan was issued (using December 2017 as the reference date). We store this in a new column mths_since_issue_d.
+
+
+
+Dummy variables
+
+We create dummy variables for eight categorical columns (grade, sub_grade, home_ownership, etc.) using a consistent naming format (column_name:category). These dummy variables are first generated separately, combined into one dataframe, and finally appended to the original dataset so the categorical information is now available in numeric form for modeling.
+
+
+
+Missing values 
+
+We first identify missing values in the dataset and then address them. For total_rev_hi_lim, missing entries are filled with the corresponding funded_amnt value. For annual_inc, gaps are replaced with the mean annual income. For other numeric columns, missing values are set to zero, ensuring the dataset is free of nulls and ready for modeling.
+
+
+
+Defining Good vs. Bad Loans
+
+We analyze the loan_status column by identifying its unique values, counting their occurrences, and determining their proportions. Next, we create a new column, good_bad, where loans are labeled bad (0) if they are charged-off, in default, or late, and good (1) for all other statuses.
+
+
+
+Dataset Splitting for Model Training and Evaluation
+
+We begin by splitting the dataset into input features (all columns except good_bad) and target labels (good_bad). Then, we divide the data into training and testing sets, using test_size=0.2 to allocate 20% for testing and 80% for training. The random_state=42 parameter ensures reproducibility, so the same rows are assigned to train and test sets every time the code is run.
+
+
+
+Weight of Evidence (WoE) and Information Value (IV)
+
+
+
+We take the training set’s grade column and target variable, then group and aggregate the data to prepare it for Weight of Evidence (WoE) and Information Value (IV) calculations:
+
+Count & Mean by Grade – Count how many loans fall into each grade and calculate the proportion of “good” loans for each grade.
+
+Proportions – Compute the share of total observations (prop_n_obs) and the share of good/bad loans (prop_n_good, prop_n_bad) per grade.
+
+WoE Calculation – For each grade, calculate the Weight of Evidence:
+
+WoE
+=
+ln
+⁡
+(
+prop_n_good
+prop_n_bad
+)
+Sorting & Differences – Sort grades by WoE and calculate absolute differences in prop_good and WoE between consecutive grades.
+
+IV Calculation – Calculate Information Value by summing:
+
+(
+prop_n_good
+−
+prop_n_bad
+)
+×
+WoE
+In short, we transform the data into a table that shows, for each grade, the counts, good/bad proportions, WoE, and finally the overall IV—used to measure the predictive power of grade for distinguishing good vs bad loans.
+
+
+
+Reducing State Categories via Risk-Based Clustering
+
+This step is about reducing the number of categories for the borrower’s state of residence.
+Originally, each U.S. state had its own separate indicator (like “Is borrower from Texas?” yes/no).
+From the earlier weight-of-evidence analysis, states that showed similar default behaviour were grouped together.
+
+For example, states with roughly the same risk profile might be put into one big group, while another set of states with a different risk profile forms a second group, and so on.
+This grouping makes the model simpler, more stable, and less prone to overfitting.
+
+Finally, one of the groups is chosen as the reference group — the baseline — so that when the model runs, other groups’ risk is compared to this baseline.
+
+
+
+Simplifying Loan Purpose Categories
+
+We are regrouping the loan purpose categories to make the dataset simpler and the model more reliable.
+
+We keep "debt_consolidation" and "credit_card" as their own separate categories because they occur often and may have unique default patterns. All the smaller, less frequent purposes — such as educational, small business, wedding, renewable energy, moving, and house — are combined into one miscellaneous category.
+
+We set this miscellaneous category as the baseline so that when we build the model, the risk of other categories will be compared to this group. This reduces noise from rare categories, limits the number of variables, and helps prevent overfitting.
+
+
+
+Computing WoE and IV
+
+
+
+For ordered discrete variables such as grades or for continuous variables like income or age etc, we calculate WoE and IV by first pairing the variable with the good/bad target indicator. For each value, we determine the total number of records and the proportion of good loans, then work out the number and proportion of good and bad loans it represents in the whole dataset. Using these proportions, we take the logarithm of the ratio of the good-loan share to the bad-loan share to get the WoE. We then measure how the proportion of good loans and the WoE vary across adjacent values, and sum these contributions to get the IV, which reflects the variable’s predictive power. The key difference from the unordered case is that we keep the original sequence of the values, because the order itself contains meaningful information.
+
+
+
+Feature Selection for Model Training
+
+We are selecting a specific set of input variables from the training dataset loan_data_inputs_train to create a new dataframe called inputs_train_with_ref_cat.
+
+We are including important categorical variables like loan grades, grouped home ownership categories, state groups, verification statuses, loan purposes, and initial list status.
+
+We are also including binned versions of continuous variables such as loan term, employment length, months since issue date, interest rates, months since earliest credit line, delinquency counts, number of inquiries, open accounts, public records, total accounts, revolving credit limits, annual income, debt-to-income ratio, and months since last delinquency or record.
+
+These variables are already preprocessed and encoded in a way that makes them ready for modeling, and this selection will be used for further analysis or training the model.
+
+
+
+PD Model
+
+We are creating an instance of the Logistic Regression model and fitting it using the selected training input variables (`inputs_train`) and their corresponding target values (`loan_data_targets_train`). This process estimates the model’s intercept and coefficients for each feature.
+
+
+
+Build a Logistic Regression Model with P-Values
+
+We are defining a custom class that extends sklearn's LogisticRegression by adding the ability to compute p-values for the model coefficients.
+
+When we fit this model with data, it first fits the logistic regression normally. Then, it calculates the Fisher Information Matrix from the input data and model predictions, which quantifies the amount of information each feature contributes. By inverting this matrix, we estimate the variance of the coefficient estimates. Using these variances, we compute z-scores for each coefficient by dividing the estimated coefficients by their standard errors. Finally, these z-scores are converted into two-tailed p-values, which tell us the statistical significance of each coefficient in predicting the target variable.
+
+The fitted coefficients, intercept, and calculated p-values are then stored as attributes for easy access.
+
+
+
+Feature Selection Based on Statistical Significance
+
+We are selecting a smaller set of input features by keeping only those dummy variables that show statistical significance in the model. This involves defining which categories will serve as references and which variables to remove. By dropping insignificant features, we simplify the model, improve its interpretability, and focus on the variables that really influence the outcome.
+
+
+
+Evaluating Model Performance with Confusion Matrix and Accuracy
+
+We create a new column that marks predictions as 1 if the predicted probability exceeds 0.9, and 0 otherwise. Then, we build a confusion matrix comparing the actual loan outcomes with these predicted classes. This matrix shows how many loans were correctly or incorrectly classified as good or bad. By dividing each count by the total number of observations, we convert these counts into proportions. Finally, we calculate the model's accuracy by summing the proportions of correct predictions (both true positives and true negatives). In this case, the model's accuracy is about 58.6%.
+
+
+
+ROC Curve Analysis and AUROC Calculation for Model Evaluation
+
+We generate the ROC curve to evaluate the model's performance by plotting the trade-off between true positive rate and false positive rate at various thresholds.
+
+First, we compute three arrays: false positive rates (fpr), true positive rates (tpr), and the thresholds used for classification. Then we plot the ROC curve using fpr on the x-axis and tpr on the y-axis. The diagonal dashed line represents a random classifier's performance, serving as a baseline.
+
+Finally, we calculate the AUROC (Area Under the ROC Curve), which summarizes the model's ability to distinguish between classes across all thresholds. Here, the AUROC is about 0.70, indicating the model has reasonable discriminative power.
+
+
+
+Gini and Kolmogorov-Smirnov (KS) Curve Analysis.
+
+We calculate cumulative counts and percentages of the population, 'good' outcomes, and 'bad' outcomes based on the sorted predictions.
+
+Using these cumulative values, we plot the Gini curve by graphing cumulative % population vs cumulative % bad, along with a diagonal reference line representing a random model.
+
+Then, for the Kolmogorov-Smirnov (KS) plot, we plot the predicted probabilities on the x-axis against the cumulative % bad (in red) and cumulative % good (in blue) on the y-axis.
+
+Finally, the KS statistic is calculated as the maximum vertical distance between the cumulative % bad and cumulative % good curves. Here, the KS value is about 0.297, which measures how well the model separates the 'good' and 'bad' populations—the higher the KS, the better the separation.
+
+
+
+EAD and LGD
+
+
+
+LGD Modeling: Data Preparation, Logistic Regression, and Feature Significance Analysis
+
+We split the LGD stage-1 dataset into training and test sets so we can build and evaluate a classifier that predicts whether a recovery rate is zero or positive. We pass the features (all columns except the target and a few LGD-specific fields) as inputs and the binary target recovery_rate_0_1 as labels, reserving 20% of the data for testing and using a fixed random seed so the split is reproducible.
+
+We then define the full list of candidate features we want the model to consider and separately list the dummy-variable reference categories. We keep only the selected features for training and explicitly drop the reference-category columns so the model uses the remaining dummies as contrasts against those baselines. Choosing and removing reference categories this way prevents collinearity from the dummy variable trap and makes the interpretation of coefficients relative to a clear baseline.
+
+We check for missing values in the prepared training matrix to ensure there are no NaNs that would break model estimation. if any column has missing values we should impute or remove them before fitting the model.
+
+We fit a logistic regression variant that additionally computes approximate p-values for each coefficient. After fitting the model normally, we use the Fisher information approximation (built from the model’s decision function and the input matrix) to estimate the variance of each coefficient, convert those into z-scores, and then transform the z-scores into two-tailed p-values. These p-values give us a statistical measure of whether each feature’s effect is significantly different from zero.
+
+Model Evaluation: Confusion Matrix Metrics and AUROC Analysis
+
+We set a decision threshold at 0.5 and create a binary prediction (1 if predicted probability > 0.5, else 0) so we can evaluate classification performance on the test set.
+
+We compare actual vs predicted using a confusion matrix. The raw counts are: True Negatives = 1,000, False Positives = 2,762, False Negatives = 708, True Positives = 4,178 (total 8,648 observations). Converting to rates (proportion of total): TN 11.6%, FP 31.9%, FN 8.2%, TP 48.3%. From these we get interpretable metrics: accuracy ≈ 59.9%, precision ≈ 60.2% (of predicted positives, how many were actual positives), recall / sensitivity ≈ 85.5% (of actual positives, how many we caught), and specificity ≈ 26.6% (of actual negatives, how many we correctly identified). These numbers show we correctly identify most actual recoveries (high recall) but also mislabel many non-recoveries as recoveries (low specificity / high false positive rate ≈ 73.4%).
+
+We evaluate discrimination using AUROC. The model’s AUROC ≈ 0.644, indicating moderate ability to rank positives higher than negatives.
+
+
+
+Modeling Recovery Rates with Linear Regression in LGD Stage-2
+
+We isolate loans with positive recovery and split that subset into train and test sets so we model how much is recovered only for cases where recovery occurred. This ensures the regression targets a continuous recovery rate rather than the binary recovery/no-recovery problem handled in stage-1.
+
+We build the feature matrix by keeping the chosen predictors (features_all) and removing the dummy reference categories so the design matrix matches what the model expects. This gives us aligned X (features) and y (recovery rate) for training and later for scoring the holdout set.
+
+We fit an ordinary linear regression and compute standard errors, t-statistics and p-values for each coefficient to check which predictors meaningfully explain variation in recovery rates. The coefficients tell us the direction and size of the effect (e.g., a positive coefficient → higher recovery), while p-values tell us whether each effect is statistically distinguishable from zero.
+
+Applying Stage-2 Regression Model to Test Data and Evaluating Predictions
+
+We align the test matrix to the model by keeping the same feature list and dropping the reference dummy columns so the test data has the exact same design as training. We use the fitted stage-2 regression to predict recovery rates on the test set and then check predictive strength by computing the correlation between actual and predicted recovery; here the correlation is about **0.308**, indicating a modest positive relationship (predictions move with actuals but there’s substantial unexplained variation).
+
+
+
+LGD model
+
+We build LGD predictions with a two-stage approach. First, we use the stage-1 logistic model to predict whether a loan will have zero recovery or some positive recovery (binary outcome). This gives us a 0/1 indicator for every test observation.
+
+For those predicted to have positive recovery, we apply the stage-2 linear regression to estimate how much will be recovered (a continuous recovery rate). We can run the stage-2 model on the whole test feature set and obtain an estimated recovery rate for every observation.
+
+We combine the two results by multiplying them: final_pred = stage1_indicator * stage2_prediction. That automatically sets the recovery to zero when stage-1 predicts zero, and uses the stage-2 estimate when stage-1 predicts one.
+
+Because the linear model can produce values outside the [0,1] interval, we post-process the combined predictions by clipping: any value < 0 → 0, and any value > 1 → 1. This enforces the natural bounds of recovery rates.
+
+The final output is a single predicted recovery rate per test observation (in [0,1])  and LGD is 1 - Recovery rate

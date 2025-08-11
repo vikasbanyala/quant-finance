@@ -1,5 +1,19 @@
 # https://www.dropbox.com/scl/fi/rzqaawjqwt4qe3rmnnxiw/loan_data_2007_2014.csv?rlkey=a5y6ojznit1ozu8fwt0m7w11w&e=1&dl=0
 # https://www.dropbox.com/scl/fi/y8s2by8eysd9ys25e09ly/loan_data_2007_2014_preprocessed.csv?rlkey=382spcm4emmou4n60drtjsks4&e=1&dl=0
+Introduction to LGD (Loss Given Default)
+Loss Given Default (LGD) is a key metric in credit risk management that quantifies the amount a lender stands to lose if a borrower defaults on a loan, expressed as a percentage of the total exposure at the time of default. Unlike the Probability of Default (PD), which estimates the likelihood of default, LGD focuses on the severity of loss once default occurs.
+
+Accurate estimation of LGD is crucial for banks and financial institutions to calculate expected credit losses, determine capital requirements, and make informed lending decisions. LGD modeling typically involves analyzing historical recovery data and identifying factors that influence the amount recovered after default.
+
+Our LGD modeling approach is structured in two stages: first, we classify whether a recovery will occur, and second, we estimate the recovery amount for those cases where recovery happens. This two-step approach helps improve prediction accuracy and better captures the complex nature of recovery outcomes.
+
+Throughout this modeling process, careful data preparation, feature engineering, and rigorous evaluation metrics are applied to ensure the model’s reliability and effectiveness in supporting risk assessment and regulatory compliance.
+
+
+
+
+
+
 DATA preparation
 
 emp_length

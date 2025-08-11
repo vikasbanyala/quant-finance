@@ -9,6 +9,7 @@ Our LGD modeling approach is structured in two stages: first, we classify whethe
 
 Throughout this modeling process, careful data preparation, feature engineering, and rigorous evaluation metrics are applied to ensure the model’s reliability and effectiveness in supporting risk assessment and regulatory compliance.
 
+An LGD model tells us how much of a loan we’re likely to lose if a borrower doesn’t pay it back. This number is important because it helps the bank decide how much money to set aside for losses, how to price loans, meet regulatory capital needs, test how we’d cope in tough times, and plan recovery strategies. A good LGD model gives a realistic best estimate and, when needed, a more cautious view, all based on clear, reliable data. The results should be consistent, easy to explain, and well-documented so that teams across credit, finance, and audit can trust and use them in their decisions.
 
 
 

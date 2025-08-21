@@ -11,7 +11,12 @@ Throughout this modeling process, careful data preparation, feature engineering,
 
 An LGD model tells us how much of a loan we’re likely to lose if a borrower doesn’t pay it back. This number is important because it helps the bank decide how much money to set aside for losses, how to price loans, meet regulatory capital needs, test how we’d cope in tough times, and plan recovery strategies. A good LGD model gives a realistic best estimate and, when needed, a more cautious view, all based on clear, reliable data. The results should be consistent, easy to explain, and well-documented so that teams across credit, finance, and audit can trust and use them in their decisions.
 
+Hi Pratik,
+As we discussed, I will develop a liquidity risk forecasting model using regression models and other machine learning techniques. The Liquidity Coverage Ratio (LCR) will serve as the dependent variable, with various financial ratios like like the loan-to-deposit ratio, asset liquidity ratios (e.g., cash and securities to total assets), wholesale funding dependence, and off-balance-sheet exposure metrics as independent variables. I will focus on US banks for this analysis. The primary objective is to forecast the one-year-ahead LCR based on the current state of the balance sheet, leveraging the information available therein.
 
+For the stress testing component, I will project cash flows across varying maturities and apply shocks as outlined in the Basel III framework—such as deposit run-offs (e.g., 3-10% for retail deposits, up to 100% for certain wholesale funding), sudden increases in collateral calls due to market volatility, and credit rating downgrades.
+
+Regarding the interest rate shock scenario, since contractual details for interest rate products are not readily available in public balance sheet data, I'll incorporate a few synthetic (dummy) interest rate-sensitive instruments into the balance sheet—such as hypothetical fixed-rate bonds, interest rate swaps, or floating-rate loans—and recalculate their values post-shock using standard valuation methods (e.g., discounted cash flow adjustments for yield curve shifts). For realism, these shocks could draw from the Federal Reserve's annual stress test scenarios, like a 200-300 basis point parallel shift in rates, to assess impacts on net interest margins and liquidity buffers.
 
 
 
